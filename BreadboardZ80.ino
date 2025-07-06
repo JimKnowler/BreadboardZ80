@@ -38,7 +38,7 @@ void WriteDataBus(uint8_t Value)
 {
   for (int i = 0; i < 8; i++)
   {
-    const uint8_t PinValue = (Value >> i) & 1;
+    const uint8_t PinValue = (Value & (1 << i)) != 0;
     digitalWrite(PinsDataBus[i], PinValue);
   }
 }
@@ -118,7 +118,7 @@ void ResetZ80()
   digitalWrite(PinRESET_N, 0);
   delay(100);
 
-  for (int i=0; i<5; i++)
+  for (int i=0; i<8; i++)
   {
     StepZ80();
   }
@@ -139,11 +139,16 @@ void StepZ80()
   const uint8_t AddressBus = ReadAddressBus();
 
   char buffer[128];
-  snprintf(buffer, sizeof(buffer), "STEP: ADDR[%04X] M1_N[%d] RD_N[%d] WR_N[%d]", 
+  snprintf(buffer, sizeof(buffer), "STEP: ADDR[%04X] M1_N[%d] RD_N[%d] WR_N[%d] MREQ_N[%d] IORQ_N[%d] BUSACK_N[%d] RFSH_N[%d] HALT_N[%d]", 
     AddressBus,
     digitalRead(PinM1_N),
     digitalRead(PinRD_N),
-    digitalRead(PinWR_N)
+    digitalRead(PinWR_N),
+    digitalRead(PinMREQ_N),
+    digitalRead(PinIORQ_N),
+    digitalRead(PinBUSACK_N),
+    digitalRead(PinRFSH_N),
+    digitalRead(PinHALT_N)
   );
 
   Serial.println(buffer);
