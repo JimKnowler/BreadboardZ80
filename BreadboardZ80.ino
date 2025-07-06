@@ -118,9 +118,10 @@ void ResetZ80()
   digitalWrite(PinRESET_N, 0);
   delay(100);
 
-  StepZ80();
-  StepZ80();
-  StepZ80();
+  for (int i=0; i<5; i++)
+  {
+    StepZ80();
+  }
 
   digitalWrite(PinRESET_N, 1);
   delay(100);
