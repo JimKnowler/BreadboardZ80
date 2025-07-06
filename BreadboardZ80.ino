@@ -1,4 +1,5 @@
 
+
 // Arduino digital pins connected to Z80 pins A0...A15
 int PinsAddressBus[16] = {
   53, 51, 49, 47, 45, 43, 41, 39, 37, 35, 33,
@@ -26,6 +27,9 @@ const int PinBUSACK_N = 42;
 const int PinWR_N = 40;
 const int PinRD_N = 38;
 
+const int PinButtonRESET = 8;
+const int PinButtonSTEP = 9;
+
 // Z80 Opcodes
 const uint8_t OpcodeNOP = 0x00;
 
@@ -47,7 +51,7 @@ uint16_t ReadAddressBus()
   for (int i = 0; i < 16; i++)
   {
     const uint8_t PinValue = digitalRead(PinsAddressBus[i]);
-    Value |= (PinValue < i);
+    Value |= (PinValue << i);
   }
 
   return Value;
@@ -98,14 +102,71 @@ void setup() {
   pinMode(PinWAIT_N, OUTPUT);
   digitalWrite(PinWAIT_N, 1);
 
-  // Read BUSACK
+  // Read BUSACK, WR, RD
   pinMode(PinBUSACK_N, INPUT);
   pinMode(PinWR_N, INPUT);
   pinMode(PinRD_N, INPUT);
 
+  // Read Buttons RESET, STEP
+  pinMode(PinButtonRESET, INPUT);
+  pinMode(PinButtonSTEP, INPUT);
+}
+
+void ResetZ80()
+{
+  Serial.println("RESET >>>> STARTING");
+  digitalWrite(PinRESET_N, 0);
+  delay(100);
+
+  StepZ80();
+  StepZ80();
+  StepZ80();
+
+  digitalWrite(PinRESET_N, 1);
+  delay(100);
+
+  Serial.println("RESET >>>> COMPLETE");
+}
+
+void StepZ80()
+{
+  digitalWrite(PinCLK, 1);
+  delay(100);
+  digitalWrite(PinCLK, 0);
+  delay(100);
+
+  const uint8_t AddressBus = ReadAddressBus();
+
+  char buffer[128];
+  snprintf(buffer, sizeof(buffer), "STEP: ADDR[%04X] M1_N[%d] RD_N[%d] WR_N[%d]", 
+    AddressBus,
+    digitalRead(PinM1_N),
+    digitalRead(PinRD_N),
+    digitalRead(PinWR_N)
+  );
+
+  Serial.println(buffer);
+}
+
+void WaitUntilRead(int Pin, int Value)
+{
+  while (Value != digitalRead(Pin)) {
+    delay(300);
+  }
 }
 
 void loop() {
-  
+  if (1 == digitalRead(PinButtonRESET))
+  {
+    ResetZ80();
 
+    WaitUntilRead(PinButtonRESET, 0);
+  }
+
+  if (1 == digitalRead(PinButtonSTEP))
+  {
+    StepZ80();
+
+    WaitUntilRead(PinButtonSTEP, 0);
+  }
 }
