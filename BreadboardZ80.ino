@@ -29,9 +29,14 @@ const int PinRD_N = 38;
 
 const int PinButtonRESET = 8;
 const int PinButtonSTEP = 9;
+const int PinButtonRUN = 10;
 
 // Z80 Opcodes
 const uint8_t OpcodeNOP = 0x00;
+
+namespace {
+  bool bIsRunning = false;
+}
 
 // Write a value to the data bus
 void WriteDataBus(uint8_t Value)
@@ -134,9 +139,9 @@ void setup() {
 void StepZ80()
 {
   digitalWrite(PinCLK, 1);
-  delay(100);
+  delay(1);
   digitalWrite(PinCLK, 0);
-  delay(100);
+  delay(1);
 
   const uint8_t AddressBus = ReadAddressBus();
 
@@ -166,6 +171,8 @@ void WaitUntilRead(int Pin, int Value)
 void loop() {
   if (1 == digitalRead(PinButtonRESET))
   {
+    bIsRunning = false;
+
     ResetZ80();
 
     WaitUntilRead(PinButtonRESET, 0);
@@ -173,8 +180,21 @@ void loop() {
 
   if (1 == digitalRead(PinButtonSTEP))
   {
+    bIsRunning = false;
+
     StepZ80();
 
     WaitUntilRead(PinButtonSTEP, 0);
   }
+
+  if (1 == digitalRead(PinButtonRUN))
+  {
+    bIsRunning = true;
+  }
+
+  if (bIsRunning)
+  {
+    StepZ80();
+  }
+
 }
