@@ -57,6 +57,23 @@ uint16_t ReadAddressBus()
   return Value;
 }
 
+void ResetZ80()
+{
+  Serial.println("RESET >>>> STARTING");
+  digitalWrite(PinRESET_N, 0);
+  delay(100);
+
+  for (int i=0; i<8; i++)
+  {
+    StepZ80();
+  }
+
+  digitalWrite(PinRESET_N, 1);
+  delay(100);
+
+  Serial.println("RESET >>>> COMPLETE");
+}
+
 void setup() {
   Serial.begin(9600);
   Serial.println("BreadboardZ80");
@@ -110,23 +127,8 @@ void setup() {
   // Read Buttons RESET, STEP
   pinMode(PinButtonRESET, INPUT);
   pinMode(PinButtonSTEP, INPUT);
-}
 
-void ResetZ80()
-{
-  Serial.println("RESET >>>> STARTING");
-  digitalWrite(PinRESET_N, 0);
-  delay(100);
-
-  for (int i=0; i<8; i++)
-  {
-    StepZ80();
-  }
-
-  digitalWrite(PinRESET_N, 1);
-  delay(100);
-
-  Serial.println("RESET >>>> COMPLETE");
+  ResetZ80();
 }
 
 void StepZ80()
@@ -139,16 +141,16 @@ void StepZ80()
   const uint8_t AddressBus = ReadAddressBus();
 
   char buffer[128];
-  snprintf(buffer, sizeof(buffer), "STEP: ADDR[%04X] M1_N[%d] RD_N[%d] WR_N[%d] MREQ_N[%d] IORQ_N[%d] BUSACK_N[%d] RFSH_N[%d] HALT_N[%d]", 
+  snprintf(buffer, sizeof(buffer), "STEP: ADDR[%04X] %s %s %s %s %s %s %s %s", 
     AddressBus,
-    digitalRead(PinM1_N),
-    digitalRead(PinRD_N),
-    digitalRead(PinWR_N),
-    digitalRead(PinMREQ_N),
-    digitalRead(PinIORQ_N),
-    digitalRead(PinBUSACK_N),
-    digitalRead(PinRFSH_N),
-    digitalRead(PinHALT_N)
+    (digitalRead(PinM1_N) == 0) ? "M1" : "  ",
+    (digitalRead(PinRD_N) == 0) ? "RD" : "  ",
+    (digitalRead(PinWR_N) == 0) ? "WR" : "  ",
+    (digitalRead(PinMREQ_N) == 0) ? "MREQ" : "    ",
+    (digitalRead(PinIORQ_N) == 0) ? "IORQ" : "    ",
+    (digitalRead(PinBUSACK_N) == 0) ? "BUSACK" : "      ",
+    (digitalRead(PinRFSH_N) == 0) ? "RFSH" : "    ",
+    (digitalRead(PinHALT_N) == 0) ? "HALT" : "    "
   );
 
   Serial.println(buffer);
