@@ -122,13 +122,20 @@ void ResetZ80()
   digitalWrite(PinRESET_N, 0);
   delay(100);
 
-  for (int i=0; i<8; i++)
+  // step 3 cycles when reset pin is active
+  for (int i=0; i<3; i++)
   {
     StepZ80();
   }
 
   digitalWrite(PinRESET_N, 1);
   delay(100);
+
+  // step another 2 cycles after reset pin is inactive, to skip CPU finishing reset
+  for (int i=0; i<2; i++)
+  {
+    StepZ80();
+  }
 
   Serial.println("RESET >>>> COMPLETE");
 }
