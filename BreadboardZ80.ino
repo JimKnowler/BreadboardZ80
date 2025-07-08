@@ -55,9 +55,34 @@ uint16_t ReadAddressBus()
 
   for (int i = 0; i < 16; i++)
   {
-    const uint8_t PinValue = digitalRead(PinsAddressBus[i]);
+    const uint16_t PinValue = digitalRead(PinsAddressBus[i]);
     Value |= (PinValue << i);
   }
+
+#if DEBUG_READ_ADDRESSBUS
+  char Buffer[128];
+  snprintf(Buffer, sizeof(Buffer),"ReadAddressBus [%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d] => %04X",
+    digitalRead(PinsAddressBus[15]),
+    digitalRead(PinsAddressBus[14]),
+    digitalRead(PinsAddressBus[13]),
+    digitalRead(PinsAddressBus[12]),
+    digitalRead(PinsAddressBus[11]),
+    digitalRead(PinsAddressBus[10]),
+    digitalRead(PinsAddressBus[9]),
+    digitalRead(PinsAddressBus[8]),
+    digitalRead(PinsAddressBus[7]),
+    digitalRead(PinsAddressBus[6]),
+    digitalRead(PinsAddressBus[5]),
+    digitalRead(PinsAddressBus[4]),
+    digitalRead(PinsAddressBus[3]),
+    digitalRead(PinsAddressBus[2]),
+    digitalRead(PinsAddressBus[1]),
+    digitalRead(PinsAddressBus[0]),
+    Value
+  );
+
+  Serial.println(Buffer);
+#endif
 
   return Value;
 }
@@ -80,7 +105,7 @@ void ResetZ80()
 }
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println("BreadboardZ80");
 
   // Read from Address 
@@ -143,7 +168,7 @@ void StepZ80()
   digitalWrite(PinCLK, 0);
   delay(1);
 
-  const uint8_t AddressBus = ReadAddressBus();
+  const uint16_t AddressBus = ReadAddressBus();
 
   char buffer[128];
   snprintf(buffer, sizeof(buffer), "STEP: ADDR[%04X] %s %s %s %s %s %s %s %s", 
