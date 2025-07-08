@@ -33,7 +33,22 @@ const int PinButtonRUN = 10;
 
 // Z80 Opcodes
 const uint8_t OpcodeNOP = 0x00;
+const uint8_t OpcodeLD_A_Immediate = 0x3E;        // Load 8 bit immediate value into A, followed by a 1 x byte for immediate value
+const uint8_t OpcodeADD_A_Immediate = 0xC6;       // Add 8 bit immediate value to A, followed by 1 x byte for immediate value
+const uint8_t OpcodeLD_HL_Immediate = 0x21;       // Load 16 bit immediate value into HL, followed by 2 x bytes for immediate value
+const uint8_t OpcodeLD_HL_A = 0x77;               // Store 8 bit value in A to address in HL
+const uint8_t OpcodeHALT = 0x76;                  // HALT operation of the CPU
 
+// Program - Increment a value and write it to memory
+const uint8_t Program[] = {
+  OpcodeLD_A_Immediate, 0xAB,                     // initialize value of A
+  OpcodeADD_A_Immediate, 0x01,                    // increment value of A
+  OpcodeLD_HL_Immediate, 0x34, 0x12,              // initialize HL with address 0x1234 (the address that we will write our result to)
+  OpcodeLD_HL_A,                                  // write result to address in HL
+  OpcodeHALT
+};
+
+// Control Flags
 namespace {
   bool bIsRunning = false;
 }
@@ -46,6 +61,20 @@ void WriteDataBus(uint8_t Value)
     const uint8_t PinValue = (Value & (1 << i)) != 0;
     digitalWrite(PinsDataBus[i], PinValue);
   }
+}
+
+// Read a value from the data bus
+uint8_t ReadDataBus()
+{
+  uint8_t Value = 0;
+
+  for (int i = 0; i < 8; i++)
+  {
+    const uint8_t PinValue = digitalRead(PinsDataBus[i]);
+    Value |= (PinValue << i);
+  }
+
+  return Value;
 }
 
 // Read the current value from the address bus
@@ -104,6 +133,22 @@ void ResetZ80()
   Serial.println("RESET >>>> COMPLETE");
 }
 
+void SetupDataBusWrite()
+{
+  for (const int Pin: PinsDataBus)
+  {
+    pinMode(Pin, OUTPUT);
+  }
+}
+
+void SetupDataBusRead()
+{
+  for (const int Pin: PinsDataBus)
+  {
+    pinMode(Pin, INPUT);
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   Serial.println("BreadboardZ80");
@@ -115,11 +160,7 @@ void setup() {
   }
   
   // Write to Data Bus
-  for (const int Pin: PinsDataBus)
-  {
-    pinMode(Pin, OUTPUT);
-  }
-
+  SetupDataBusWrite();
   WriteDataBus(OpcodeNOP);
 
   // Write CLK
@@ -170,17 +211,55 @@ void StepZ80()
 
   const uint16_t AddressBus = ReadAddressBus();
 
+  const bool bRD = (digitalRead(PinRD_N) == 0);
+  const bool bWR = (digitalRead(PinWR_N) == 0);
+  const bool bHALT = (digitalRead(PinHALT_N) == 0);
+
+  if (bHALT)
+  {
+    bIsRunning = false;
+  }
+
+  uint8_t DataBus = 0x00;
+
+  if (bWR)
+  {
+    SetupDataBusRead();
+    DataBus = ReadDataBus();
+  } else {
+    SetupDataBusWrite();
+    if (bRD)
+    {
+      const uint16_t ProgramSize = sizeof(Program);
+      if (AddressBus < ProgramSize) {
+        DataBus = Program[AddressBus];
+        WriteDataBus(DataBus);
+      } else {
+        char Buffer[128];
+        snprintf(Buffer, sizeof(Buffer), "ERROR: trying to read to address [%04X] when program only has [%04X] bytes", AddressBus, ProgramSize);
+        Serial.println(Buffer);
+
+        bIsRunning = false;
+      }
+    }
+    else
+    {
+      WriteDataBus(0x00);
+    }
+  }
+
   char buffer[128];
-  snprintf(buffer, sizeof(buffer), "STEP: ADDR[%04X] %s %s %s %s %s %s %s %s", 
+  snprintf(buffer, sizeof(buffer), "STEP: ADDR[%04X] DATA[%02X] %s %s %s %s %s %s %s %s", 
     AddressBus,
+    DataBus,
     (digitalRead(PinM1_N) == 0) ? "M1" : "  ",
-    (digitalRead(PinRD_N) == 0) ? "RD" : "  ",
-    (digitalRead(PinWR_N) == 0) ? "WR" : "  ",
+    bRD ? "RD" : "  ",
+    bWR ? "WR" : "  ",
     (digitalRead(PinMREQ_N) == 0) ? "MREQ" : "    ",
     (digitalRead(PinIORQ_N) == 0) ? "IORQ" : "    ",
     (digitalRead(PinBUSACK_N) == 0) ? "BUSACK" : "      ",
     (digitalRead(PinRFSH_N) == 0) ? "RFSH" : "    ",
-    (digitalRead(PinHALT_N) == 0) ? "HALT" : "    "
+    bHALT ? "HALT" : "    "
   );
 
   Serial.println(buffer);
