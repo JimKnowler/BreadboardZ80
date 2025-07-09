@@ -51,6 +51,7 @@ const uint8_t Program[] = {
 // Control Flags
 namespace {
   bool bIsRunning = false;
+  bool bIsResetting = false;
 }
 
 // Write a value to the data bus
@@ -119,6 +120,8 @@ uint16_t ReadAddressBus()
 void ResetZ80()
 {
   Serial.println("RESET >>>> STARTING");
+  bIsResetting = true;
+
   digitalWrite(PinRESET_N, 0);
   delay(100);
 
@@ -137,6 +140,7 @@ void ResetZ80()
     StepZ80();
   }
 
+  bIsResetting = false;
   Serial.println("RESET >>>> COMPLETE");
 }
 
@@ -241,7 +245,7 @@ void StepZ80()
       if (AddressBus < ProgramSize) {
         DataBus = Program[AddressBus];
         WriteDataBus(DataBus);
-      } else {
+      } else if (!bIsResetting) {
         char Buffer[128];
         snprintf(Buffer, sizeof(Buffer), "ERROR: trying to read to address [%04X] when program only has [%04X] bytes", AddressBus, ProgramSize);
         Serial.println(Buffer);
