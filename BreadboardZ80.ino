@@ -37,13 +37,43 @@ const uint8_t OpcodeLD_A_Immediate = 0x3E;        // Load 8 bit immediate value 
 const uint8_t OpcodeADD_A_Immediate = 0xC6;       // Add 8 bit immediate value to A, followed by 1 x byte for immediate value
 const uint8_t OpcodeLD_HL_Immediate = 0x21;       // Load 16 bit immediate value into HL, followed by 2 x bytes for immediate value
 const uint8_t OpcodeLD_HL_A = 0x77;               // Store 8 bit value in A to address in HL
+const uint8_t OpcodeLD_B_Immediate = 0x06;        // Load 8 bit immediate value into B, followed by 1 x byte for immediate value
+const uint8_t OpcodeLD_HL_B = 0x70;               // Store 8 bit value in B to address in HL
+const uint8_t OpcodeDEC_B = 0x05;                 // Decrement value of B register by 1
+const uint8_t OpcodeJP = 0xC3;                    // Jump to address, followed by 2 x bytes for immediate value (address to jump to)
+const uint8_t OpcodeJP_Zero = 0xCA;               // Jump if zero flag is set, followed by 2 x bytes for immediate value (address to jump to)
 const uint8_t OpcodeHALT = 0x76;                  // HALT operation of the CPU
 
 // Program - Increment a value and write it to memory
+/*
 const uint8_t Program[] = {
   OpcodeLD_A_Immediate, 0xAB,                     // initialize value of A
   OpcodeADD_A_Immediate, 0x01,                    // increment value of A
   OpcodeLD_HL_Immediate, 0x34, 0x12,              // initialize HL with address 0x1234 (the address that we will write our result to)
+  OpcodeLD_HL_A,                                  // write result to address in HL
+  OpcodeHALT
+};
+*/
+
+// Program - Multiply two 8 bit values and write the result to memory
+// Output: should write the value 0x12 (Decimal 18) to 0x1234
+const uint8_t X = 5;
+const uint8_t Y = 6;
+const uint8_t Program[] = {
+  // 0x00 : Initialisation
+  OpcodeLD_A_Immediate, 0,                        // initialize A to zero
+  OpcodeLD_B_Immediate, X,                        // initialize B with the first value
+  OpcodeLD_HL_Immediate, 0x34, 0x12,              // initialize HL with address 0x1234 (the address that we will write our result to
+
+  // 0x07 : Loop
+  OpcodeADD_A_Immediate, Y,                       // increment value of A with the second value
+  OpcodeDEC_B,                                    // decrement value of B by 1
+
+  // 0x0A
+  OpcodeJP_Zero, 0x10, 0x00,                      // if B is zero, then jump to writing results
+  OpcodeJP, 0x07, 0x00,                           // go back to beginning of the loop
+
+  // 0x10 : Write result to memory 0x1234
   OpcodeLD_HL_A,                                  // write result to address in HL
   OpcodeHALT
 };
