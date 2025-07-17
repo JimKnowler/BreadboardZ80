@@ -7,7 +7,7 @@ The 'asm' directory contains assembly code that can be assembled and run on the 
 
 You need to install the sjasmplus assembler from github.
 
-> 
+> https://github.com/z00m128/sjasmplus/
 
 Use sjasmplus to compile your chosen assembly program into a binary.
 
