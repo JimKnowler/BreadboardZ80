@@ -34,73 +34,23 @@ const int PinButtonRESET = 8;
 const int PinButtonSTEP = 9;
 const int PinButtonRUN = 10;
 
-// Z80 Opcodes
-const uint8_t OpcodeNOP = 0x00;
-const uint8_t OpcodeLD_A_Immediate = 0x3E;        // Load 8 bit immediate value into A, followed by a 1 x byte for immediate value
-const uint8_t OpcodeADD_A_Immediate = 0xC6;       // Add 8 bit immediate value to A, followed by 1 x byte for immediate value
-const uint8_t OpcodeLD_HL_Immediate = 0x21;       // Load 16 bit immediate value into HL, followed by 2 x bytes for immediate value
-const uint8_t OpcodeLD_HL_A = 0x77;               // Store 8 bit value in A to address in HL
-const uint8_t OpcodeLD_B_Immediate = 0x06;        // Load 8 bit immediate value into B, followed by 1 x byte for immediate value
-const uint8_t OpcodeLD_HL_B = 0x70;               // Store 8 bit value in B to address in HL
-const uint8_t OpcodeDEC_B = 0x05;                 // Decrement value of B register by 1
-const uint8_t OpcodeJP = 0xC3;                    // Jump to address, followed by 2 x bytes for immediate value (address to jump to)
-const uint8_t OpcodeJP_Zero = 0xCA;               // Jump if zero flag is set, followed by 2 x bytes for immediate value (address to jump to)
-const uint8_t OpcodeHALT = 0x76;                  // HALT operation of the CPU
+// Opcodes
+const uint8_t OpcodeNOP = 0;
 
-// Program - Increment a value and write it to memory
-/*
-const uint8_t Program[] = {
-  OpcodeLD_A_Immediate, 0xAB,                     // initialize value of A
-  OpcodeADD_A_Immediate, 0x01,                    // increment value of A
-  OpcodeLD_HL_Immediate, 0x34, 0x12,              // initialize HL with address 0x1234 (the address that we will write our result to)
-  OpcodeLD_HL_A,                                  // write result to address in HL
-  OpcodeHALT
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// Program - compiled from asm
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+unsigned char program_bin[] = {
+  0x3e, 0x00, 0x06, 0x11, 0x21, 0x00, 0x80, 0xc6, 0x0b, 0x05, 0xca, 0x10,
+  0x00, 0xc3, 0x07, 0x00, 0x77, 0x76
 };
-*/
+unsigned int program_bin_len = 18;
 
-// Program - Multiply two 8 bit values and write the result to memory
-// Output: should write the value 0x12 (Decimal 18) to 0x1234
-#if 0
-const uint8_t X = 5;
-const uint8_t Y = 6;
-// NOTE: expected answer = 5 x 6 = 30 = 0x1E = 0%00011110
-#else
-const uint8_t X = 17;
-const uint8_t Y = 11;
-// NOTE: expected answer = 17 x 9 = 187 = 0xBB = 10111011
-#endif
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<
+// Program - compiled from asm
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-const uint16_t kOutputAddress = 0x8000;
-
-uint8_t HI(const uint16_t v)
-{
-  return static_cast<uint8_t>(v >> 8);
-}
-
-uint8_t LO(const uint16_t v)
-{
-  return static_cast<uint8_t>(v);
-}
-
-const uint8_t Program[] = {
-  // 0x00 : Initialisation
-  OpcodeLD_A_Immediate, 0,                        // initialize A to zero
-  OpcodeLD_B_Immediate, X,                        // initialize B with the first value
-  
-  OpcodeLD_HL_Immediate, LO(kOutputAddress), HI(kOutputAddress),    // initialize HL with address that output is written to
-
-  // 0x07 : Loop
-  OpcodeADD_A_Immediate, Y,                       // increment value of A with the second value
-  OpcodeDEC_B,                                    // decrement value of B by 1
-
-  // 0x0A
-  OpcodeJP_Zero, 0x10, 0x00,                      // if B is zero, then jump to writing results
-  OpcodeJP, 0x07, 0x00,                           // go back to beginning of the loop
-
-  // 0x10 : Write result to memory 0x1234
-  OpcodeLD_HL_A,                                  // write result to address in HL
-  OpcodeHALT
-};
 
 // Control Flags
 namespace {
@@ -295,13 +245,12 @@ void StepZ80()
     SetupDataBusWrite();
     if (bRD)
     {
-      const uint16_t ProgramSize = sizeof(Program);
-      if (AddressBus < ProgramSize) {
-        DataBus = Program[AddressBus];
+      if (AddressBus < program_bin_len) {
+        DataBus = program_bin[AddressBus];
         WriteDataBus(DataBus);
       } else if (!bIsResetting) {
         char Buffer[128];
-        snprintf(Buffer, sizeof(Buffer), "ERROR: trying to read to address [%04X] when program only has [%04X] bytes", AddressBus, ProgramSize);
+        snprintf(Buffer, sizeof(Buffer), "ERROR: trying to read to address [%04X] when program only has [%04X] bytes", AddressBus, program_bin_len);
         Serial.println(Buffer);
 
         bIsRunning = false;
