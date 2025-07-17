@@ -1,4 +1,6 @@
-
+/**
+ * Arduino program that acts as a debug harness around a z80 chip
+ */
 
 // Arduino digital pins connected to Z80 pins A0...A15
 int PinsAddressBus[16] = {
@@ -27,6 +29,7 @@ const int PinBUSACK_N = 42;
 const int PinWR_N = 40;
 const int PinRD_N = 38;
 
+// Buttons for controlling the arduino
 const int PinButtonRESET = 8;
 const int PinButtonSTEP = 9;
 const int PinButtonRUN = 10;
@@ -57,13 +60,34 @@ const uint8_t Program[] = {
 
 // Program - Multiply two 8 bit values and write the result to memory
 // Output: should write the value 0x12 (Decimal 18) to 0x1234
+#if 0
 const uint8_t X = 5;
 const uint8_t Y = 6;
+// NOTE: expected answer = 5 x 6 = 30 = 0x1E = 0%00011110
+#else
+const uint8_t X = 17;
+const uint8_t Y = 11;
+// NOTE: expected answer = 17 x 9 = 187 = 0xBB = 10111011
+#endif
+
+const uint16_t kOutputAddress = 0x8000;
+
+uint8_t HI(const uint16_t v)
+{
+  return static_cast<uint8_t>(v >> 8);
+}
+
+uint8_t LO(const uint16_t v)
+{
+  return static_cast<uint8_t>(v);
+}
+
 const uint8_t Program[] = {
   // 0x00 : Initialisation
   OpcodeLD_A_Immediate, 0,                        // initialize A to zero
   OpcodeLD_B_Immediate, X,                        // initialize B with the first value
-  OpcodeLD_HL_Immediate, 0x34, 0x12,              // initialize HL with address 0x1234 (the address that we will write our result to
+  
+  OpcodeLD_HL_Immediate, LO(kOutputAddress), HI(kOutputAddress),    // initialize HL with address that output is written to
 
   // 0x07 : Loop
   OpcodeADD_A_Immediate, Y,                       // increment value of A with the second value
@@ -290,7 +314,7 @@ void StepZ80()
   }
 
   char buffer[128];
-  snprintf(buffer, sizeof(buffer), "STEP: ADDR[%04X] DATA[%02X] %s %s %s %s %s %s %s %s", 
+  snprintf(buffer, sizeof(buffer), "STEP: ADDR[%04X] DATA[%02X] %s %s %s %s %s %s %s %s %s", 
     AddressBus,
     DataBus,
     (digitalRead(PinM1_N) == 0) ? "M1" : "  ",
@@ -300,7 +324,8 @@ void StepZ80()
     (digitalRead(PinIORQ_N) == 0) ? "IORQ" : "    ",
     (digitalRead(PinBUSACK_N) == 0) ? "BUSACK" : "      ",
     (digitalRead(PinRFSH_N) == 0) ? "RFSH" : "    ",
-    bHALT ? "HALT" : "    "
+    bHALT ? "HALT" : "    ",
+    (digitalRead(PinWAIT_N) == 0) ? "WAIT" : "    "
   );
 
   Serial.println(buffer);
