@@ -42,12 +42,14 @@ const uint8_t OpcodeNOP = 0;
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 // 01 - display a number on LED array
+/*
 unsigned char program_bin[] = {
   0x3e, 0xb4, 0x21, 0x00, 0x80, 0x77, 0x76
 };
 unsigned int program_bin_len = 7;
+*/
 
-// Program 2 - Multiply 2 numbers
+// 02 - Multiply 2 numbers
 /*
 unsigned char program_bin[] = {
   0x3e, 0x00, 0x06, 0x11, 0x21, 0x00, 0x80, 0xc6, 0x0b, 0x05, 0xca, 0x10,
@@ -56,10 +58,24 @@ unsigned char program_bin[] = {
 unsigned int program_bin_len = 18;
 */
 
+// 03 - Subroutines
+// Expected result = 0%11010100
+unsigned char program_bin[] = {
+  0x31, 0x00, 0x02, 0xcd, 0x07, 0x00, 0x76, 0x3e, 0x00, 0x06, 0x0f, 0xc6,
+  0x0c, 0x05, 0xca, 0x14, 0x00, 0xc3, 0x0b, 0x00, 0xcd, 0x18, 0x00, 0xc9,
+  0x21, 0x00, 0x80, 0x77, 0xc9
+};
+unsigned int program_bin_len = 29;
+
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<
 // Program - compiled from asm
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
+// Random Access Memory
+// Memory that Z80 can read / write to
+const uint16_t kRamStartAddress = 0x100;
+const uint16_t kRamEndAddress = 0x200;
+uint8_t RAM[256];
 
 // Control Flags
 namespace {
@@ -246,7 +262,22 @@ void StepZ80()
 
   uint8_t DataBus = 0x00;
 
-  if (bWR)
+  if ((AddressBus >= kRamStartAddress) && (AddressBus < kRamEndAddress))
+  {
+    // RAM access
+    if (bWR)
+    {
+      SetupDataBusRead();
+      DataBus = ReadDataBus();
+
+      RAM[AddressBus - kRamStartAddress] = DataBus;
+    } else if (bRD) {
+      SetupDataBusWrite();
+      DataBus = RAM[AddressBus - kRamStartAddress];
+      WriteDataBus(DataBus);
+    }
+  }
+  else if (bWR)
   {
     SetupDataBusRead();
     DataBus = ReadDataBus();
