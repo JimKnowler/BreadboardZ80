@@ -1,10 +1,11 @@
+    org 0                               ; set the program origin
+                                        ; NOTE: 'org' is not a label, so it can't 
+                                        ;       be at the start of the line
+                                        ;       (i.e. it must be indented)
 
-ValueX equ 17
-ValueY equ 11
+ValueX equ 17                           ; Constants start with labels, so they must 
+ValueY equ 11                           ; start at the beginning of the line
 OutputAddress equ 0x8000
-
-;org 0  ; set the program origin
-
 
 start:
     LD A, 0                             ; initialize A to zero 

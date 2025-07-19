@@ -41,11 +41,20 @@ const uint8_t OpcodeNOP = 0;
 // Program - compiled from asm
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+// 01 - display a number on LED array
+unsigned char program_bin[] = {
+  0x3e, 0xb4, 0x21, 0x00, 0x80, 0x77, 0x76
+};
+unsigned int program_bin_len = 7;
+
+// Program 2 - Multiply 2 numbers
+/*
 unsigned char program_bin[] = {
   0x3e, 0x00, 0x06, 0x11, 0x21, 0x00, 0x80, 0xc6, 0x0b, 0x05, 0xca, 0x10,
   0x00, 0xc3, 0x07, 0x00, 0x77, 0x76
 };
 unsigned int program_bin_len = 18;
+*/
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<
 // Program - compiled from asm
