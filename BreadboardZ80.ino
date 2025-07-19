@@ -60,12 +60,25 @@ unsigned int program_bin_len = 18;
 
 // 03 - Subroutines
 // Expected result = 0%11010100
+/*
 unsigned char program_bin[] = {
   0x31, 0x00, 0x02, 0xcd, 0x07, 0x00, 0x76, 0x3e, 0x00, 0x06, 0x0f, 0xc6,
   0x0c, 0x05, 0xca, 0x14, 0x00, 0xc3, 0x0b, 0x00, 0xcd, 0x18, 0x00, 0xc9,
   0x21, 0x00, 0x80, 0x77, 0xc9
 };
 unsigned int program_bin_len = 29;
+*/
+
+// 04 - Interrupts
+
+unsigned char program_bin[] = {
+  0x31, 0x00, 0x02, 0xed, 0x46, 0xfb, 0x3e, 0xb7, 0xcd, 0x2f, 0x00, 0xc3,
+  0x0b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3e, 0xaa, 0xcd, 0x2f,
+  0x00, 0xed, 0x4d, 0x00, 0x3e, 0x55, 0xcd, 0x2f, 0x00, 0xed, 0x4d, 0x21,
+  0x00, 0x80, 0x77, 0xc9
+};
+unsigned int program_bin_len = 52;
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<
 // Program - compiled from asm
@@ -303,7 +316,7 @@ void StepZ80()
   }
 
   char buffer[128];
-  snprintf(buffer, sizeof(buffer), "STEP: ADDR[%04X] DATA[%02X] %s %s %s %s %s %s %s %s %s", 
+  snprintf(buffer, sizeof(buffer), "STEP: ADDR[%04X] DATA[%02X] %s %s %s %s %s %s %s %s %s %s %s", 
     AddressBus,
     DataBus,
     (digitalRead(PinM1_N) == 0) ? "M1" : "  ",
@@ -314,7 +327,9 @@ void StepZ80()
     (digitalRead(PinBUSACK_N) == 0) ? "BUSACK" : "      ",
     (digitalRead(PinRFSH_N) == 0) ? "RFSH" : "    ",
     bHALT ? "HALT" : "    ",
-    (digitalRead(PinWAIT_N) == 0) ? "WAIT" : "    "
+    (digitalRead(PinWAIT_N) == 0) ? "WAIT" : "    ",
+    (digitalRead(PinINT_N) == 0) ? "INT" : "   ",
+    (digitalRead(PinNMI_N) == 0) ? "NMI" : "   "
   );
 
   Serial.println(buffer);
