@@ -74,13 +74,13 @@ unsigned int program_bin_len = 29;
 // 04 - Interrupts
 
 unsigned char program_bin[] = {
-  0x31, 0x00, 0x02, 0xed, 0x46, 0xfb, 0x3e, 0xb7, 0xcd, 0x2f, 0x00, 0xc3,
+  0x31, 0x00, 0x02, 0xed, 0x46, 0xfb, 0x3e, 0xb7, 0xcd, 0x30, 0x00, 0xc3,
   0x0b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3e, 0xaa, 0xcd, 0x2f,
-  0x00, 0xed, 0x4d, 0x00, 0x3e, 0x55, 0xcd, 0x2f, 0x00, 0xed, 0x4d, 0x21,
-  0x00, 0x80, 0x77, 0xc9
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3e, 0xaa, 0xcd, 0x30,
+  0x00, 0xfb, 0xed, 0x4d, 0x3e, 0x55, 0xcd, 0x30, 0x00, 0xfb, 0xed, 0x4d,
+  0x21, 0x00, 0x80, 0x77, 0xc9
 };
-unsigned int program_bin_len = 52;
+unsigned int program_bin_len = 53;
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<
 // Program - compiled from asm
@@ -284,7 +284,19 @@ void StepZ80()
 
   uint8_t DataBus = 0x00;
 
-  if ((AddressBus >= kRamStartAddress) && (AddressBus < kRamEndAddress))
+  if (bIORQ && bM1)
+  {
+    // interrupt is being acknowledged
+    // we're using Interrupt Mode 0, so we need to write an opcode to the data bus
+
+    // write interrupt opcode to data bus
+    DataBus = InterruptOpcode;
+    WriteDataBus(DataBus);
+
+    // disable the interrupt pin
+    digitalWrite(PinINT_N, 1);
+  }
+  else if ((AddressBus >= kRamStartAddress) && (AddressBus < kRamEndAddress))
   {
     // RAM access
     if (bWR)
@@ -308,19 +320,7 @@ void StepZ80()
   } else {
     SetupDataBusWrite();
 
-    if (bIORQ && bM1)
-    {
-      // interrupt is being acknowledged
-      // we're using Interrupt Mode 0, so we need to write an opcode to the data bus
-
-      // write interrupt opcode to data bus
-      DataBus = InterruptOpcode;
-      WriteDataBus(DataBus);
-
-      // disable the interrupt pin
-      digitalWrite(PinINT_N, 1);
-    }
-    else if (bRD)
+    if (bRD)
     {
       if (AddressBus < program_bin_len) {
         // read program
@@ -367,16 +367,7 @@ void StartInterrupt(uint8_t InterruptHandlerAddress)
 {
   // start the sequence of issuing an interrupt, assuming that the CPU is using Interrupt Mode 0
 
-
-  //
-  // TODO: debug this opcode - is it valid?
-  //
-  
   const uint8_t OpcodeRST = 0b11000111 | InterruptHandlerAddress;
-
-  char Buffer[16];
-  snprintf(Buffer, sizeof(Buffer), "int opcode 0x%02x", OpcodeRST);
-  Serial.println(Buffer);
 
   digitalWrite(PinINT_N, 0);
   InterruptOpcode = OpcodeRST;
@@ -415,9 +406,6 @@ void loop() {
 
   if (1 == digitalRead(PinButtonInterrupt1))
   {
-    bIsRunning = false;
-    Serial.println("Interrupt 1");
-
     WaitUntilRead(PinButtonInterrupt1, 0);
 
     StartInterrupt(0x20);
@@ -425,9 +413,6 @@ void loop() {
 
   if (1 == digitalRead(PinButtonInterrupt2))
   {
-    bIsRunning = false;
-    Serial.println("Interrupt 2");
-
     WaitUntilRead(PinButtonInterrupt2, 0);
 
     StartInterrupt(0x28);
