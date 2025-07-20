@@ -33,6 +33,8 @@ const int PinRD_N = 38;
 const int PinButtonRESET = 8;
 const int PinButtonSTEP = 9;
 const int PinButtonRUN = 10;
+const int PinButtonInterrupt1 = 11;
+const int PinButtonInterrupt2 = 12;
 
 // Opcodes
 const uint8_t OpcodeNOP = 0;
@@ -89,6 +91,11 @@ unsigned int program_bin_len = 52;
 const uint16_t kRamStartAddress = 0x100;
 const uint16_t kRamEndAddress = 0x200;
 uint8_t RAM[256];
+
+// Interrupt
+// Opcode that will be written to the databus when an interrupt is acknowledged
+// NOTE: assumes Z80 is using interrupt mode 0
+uint8_t InterruptOpcode = 0;
 
 // Control Flags
 namespace {
@@ -267,6 +274,8 @@ void StepZ80()
   const bool bRD = (digitalRead(PinRD_N) == 0);
   const bool bWR = (digitalRead(PinWR_N) == 0);
   const bool bHALT = (digitalRead(PinHALT_N) == 0);
+  const bool bIORQ = (digitalRead(PinIORQ_N) == 0);
+  const bool bM1 = (digitalRead(PinM1_N) == 0);
 
   if (bHALT)
   {
@@ -292,16 +301,33 @@ void StepZ80()
   }
   else if (bWR)
   {
+    // writing outside of RAM
+
     SetupDataBusRead();
     DataBus = ReadDataBus();
   } else {
     SetupDataBusWrite();
-    if (bRD)
+
+    if (bIORQ && bM1)
+    {
+      // interrupt is being acknowledged
+      // we're using Interrupt Mode 0, so we need to write an opcode to the data bus
+
+      // write interrupt opcode to data bus
+      DataBus = InterruptOpcode;
+      WriteDataBus(DataBus);
+
+      // disable the interrupt pin
+      digitalWrite(PinINT_N, 1);
+    }
+    else if (bRD)
     {
       if (AddressBus < program_bin_len) {
+        // read program
         DataBus = program_bin[AddressBus];
         WriteDataBus(DataBus);
       } else if (!bIsResetting) {
+        // invalid read
         char Buffer[128];
         snprintf(Buffer, sizeof(Buffer), "ERROR: trying to read to address [%04X] when program only has [%04X] bytes", AddressBus, program_bin_len);
         Serial.println(Buffer);
@@ -319,11 +345,11 @@ void StepZ80()
   snprintf(buffer, sizeof(buffer), "STEP: ADDR[%04X] DATA[%02X] %s %s %s %s %s %s %s %s %s %s %s", 
     AddressBus,
     DataBus,
-    (digitalRead(PinM1_N) == 0) ? "M1" : "  ",
+    bM1 ? "M1" : "  ",
     bRD ? "RD" : "  ",
     bWR ? "WR" : "  ",
     (digitalRead(PinMREQ_N) == 0) ? "MREQ" : "    ",
-    (digitalRead(PinIORQ_N) == 0) ? "IORQ" : "    ",
+    bIORQ ? "IORQ" : "    ",
     (digitalRead(PinBUSACK_N) == 0) ? "BUSACK" : "      ",
     (digitalRead(PinRFSH_N) == 0) ? "RFSH" : "    ",
     bHALT ? "HALT" : "    ",
@@ -333,6 +359,27 @@ void StepZ80()
   );
 
   Serial.println(buffer);
+}
+
+// NOTE: InterruptHandlerAddress must be divisible by 8
+// NOTE: InterruptHandlerAddress should be in range of 0x00 to 0x38
+void StartInterrupt(uint8_t InterruptHandlerAddress)
+{
+  // start the sequence of issuing an interrupt, assuming that the CPU is using Interrupt Mode 0
+
+
+  //
+  // TODO: debug this opcode - is it valid?
+  //
+  
+  const uint8_t OpcodeRST = 0b11000111 | InterruptHandlerAddress;
+
+  char Buffer[16];
+  snprintf(Buffer, sizeof(Buffer), "int opcode 0x%02x", OpcodeRST);
+  Serial.println(Buffer);
+
+  digitalWrite(PinINT_N, 0);
+  InterruptOpcode = OpcodeRST;
 }
 
 void WaitUntilRead(int Pin, int Value)
@@ -364,6 +411,26 @@ void loop() {
   if (1 == digitalRead(PinButtonRUN))
   {
     bIsRunning = true;
+  }
+
+  if (1 == digitalRead(PinButtonInterrupt1))
+  {
+    bIsRunning = false;
+    Serial.println("Interrupt 1");
+
+    WaitUntilRead(PinButtonInterrupt1, 0);
+
+    StartInterrupt(0x20);
+  }
+
+  if (1 == digitalRead(PinButtonInterrupt2))
+  {
+    bIsRunning = false;
+    Serial.println("Interrupt 2");
+
+    WaitUntilRead(PinButtonInterrupt2, 0);
+
+    StartInterrupt(0x28);
   }
 
   if (bIsRunning)
