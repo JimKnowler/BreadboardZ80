@@ -27,6 +27,8 @@ interrupt_1:
     org 0x0020                          ; RST 0x20
     LD A, InterruptValue1
     CALL display_A
+    EI                                  ; maskable interrupts were disabled while
+                                        ;    handling this interrupt
     RETI
 
 interrupt_2:
@@ -34,6 +36,8 @@ interrupt_2:
     org 0x0028                          ; RST 0x28
     LD A, InterruptValue2
     CALL display_A
+    EI                                  ; maskable interrupts were disabled while
+                                        ;    handling this interrupt
     RETI
 
 ;
