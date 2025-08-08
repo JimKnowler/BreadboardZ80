@@ -14,3 +14,6 @@ start:
 write_results:
     LD (HL), A                          ; write the value in A to the address stored in HL
     HALT                                ; halt the CPU
+
+padding:
+    DEFS 0x8000 - $                     ; Pad to 32k - the size of the EEPROM

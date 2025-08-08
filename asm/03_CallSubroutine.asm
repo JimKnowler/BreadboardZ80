@@ -6,7 +6,8 @@
 ValueX equ 15                           ; Constants start with labels, so they must 
 ValueY equ 12                           ; start at the beginning of the line
 OutputAddress equ 0x8000                ; Memory mapped address of the LED array
-StackAddress equ 0x0200                 ; Use stack between 0x100 and 0x200
+StackAddress equ 0x8000                 ; Use the memory mapped address at the top of RAM
+                                        ; (note: SP will be decremented before writing to stack)
 ;
 ; Entry Point
 ;
@@ -44,3 +45,6 @@ display_result:
     LD HL, OutputAddress                ; initialize HL with the output address
     LD (HL), A                          ; write the value in A to the address stored in HL
     RET
+
+padding:
+    DEFS 0x8000 - $                     ; Pad to 32k - the size of the EEPROM
