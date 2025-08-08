@@ -13,8 +13,24 @@ Use sjasmplus to compile your chosen assembly program into a binary.
 
 > sjasmplus --raw=program.bin asm/YourProgram.asm 
 
+# Embed machine code in Arduino Program 
+
 Convert the binary into a c-style hexcode array that can be included into the Arduino program.
 
 > xxd -i program.bin
 
 Paste that into BreadboardZ80.ino at the position marked with comments.
+
+# Write machine code to EEPROM
+
+> minipro -p "AT28C256" -w program.bin
+
+Write the program to th EEPROM
+
+> minipro -p "AT28C256" -m program.bin
+
+Verify that the program has been written to the EEPROM
+
+> minipro -p "AT28C256" -r eeprom.bin
+
+Read data from EEPROM to eeprom.bin.
